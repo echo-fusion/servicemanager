@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager;
 
-use Container\DependenciesRepositoryInterface;
+use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
 

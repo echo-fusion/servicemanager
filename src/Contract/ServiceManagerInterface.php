@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Contract;
 
-use Container\DependenciesRepositoryInterface;
 use Psr\Container\ContainerInterface;
+use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
 
 interface ServiceManagerInterface extends ContainerInterface
 {

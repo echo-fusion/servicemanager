@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Container;
+namespace EchoFusion\ServiceManager\Container;
 
 use EchoFusion\ServiceManager\ServiceManagerException;
 
