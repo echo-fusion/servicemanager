@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use EchoFusion\ServiceManager\Container\DependenciesRepository;
 use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use PHPUnit\Framework\TestCase;
 use EchoFusion\ServiceManager\ServiceManagerException;
+use PHPUnit\Framework\TestCase;
 
 class DependenciesRepositoryTest extends TestCase
 {

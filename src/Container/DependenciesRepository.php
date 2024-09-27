@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace EchoFusion\ServiceManager\Container;
 
 use EchoFusion\ServiceManager\ServiceManagerException;
+use function sprintf;
 
 final class DependenciesRepository implements DependenciesRepositoryInterface
 {
     private array $factories = [];
+
     private array $invokables = [];
+
     private array $aliases = [];
 
     public function getType(string $id): string

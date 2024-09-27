@@ -19,7 +19,8 @@ class ManualStrategyTest extends TestCase
 
     public function testResolveReturnsInvocableInstance()
     {
-        $testClassWithInvocable = new class () {};
+        $testClassWithInvocable = new class() {
+        };
 
         $serviceManagerMock = $this->createMock(ServiceManagerInterface::class);
         $dependenciesRepositoryMock = $this->createMock(DependenciesRepositoryInterface::class);
@@ -29,7 +30,6 @@ class ManualStrategyTest extends TestCase
         $dependenciesRepositoryMock->method('getType')
             ->with('serviceInvocable')
             ->willReturn(DependenciesRepositoryInterface::Invokable);
-
 
         $dependenciesRepositoryMock->method('get')
             ->with('serviceInvocable')
@@ -42,7 +42,8 @@ class ManualStrategyTest extends TestCase
 
     public function testResolveReturnsAliasInstance()
     {
-        $testClassWithInvocable = new class () {};
+        $testClassWithInvocable = new class() {
+        };
 
         $serviceManagerMock = $this->createMock(ServiceManagerInterface::class);
         $dependenciesRepositoryMock = $this->createMock(DependenciesRepositoryInterface::class);
@@ -77,7 +78,7 @@ class ManualStrategyTest extends TestCase
 
     public function testResolveReturnsFactoryInstance()
     {
-        $testClassWithFactory = new class () {
+        $testClassWithFactory = new class() {
             public function __invoke(ServiceManagerInterface $serviceManager)
             {
                 return $this;

@@ -3,17 +3,19 @@
 declare(strict_types=1);
 
 use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\ServiceManagerException;
 use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\ServiceManagerException;
 use EchoFusion\ServiceManager\Strategies\AutoWiringStrategy;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 
 class AutoWiringStrategyTest extends TestCase
 {
     private ContainerResolverStrategyInterface $autoWiringStrategy;
+
     private MockObject $serviceManagerMock;
+
     private MockObject $dependenciesRepositoryMock;
 
     protected function setUp(): void
@@ -29,7 +31,7 @@ class AutoWiringStrategyTest extends TestCase
 
     public function testResolveInstantiableClassWithoutConstructor(): void
     {
-        $testClassWithoutConstructor = new class () {
+        $testClassWithoutConstructor = new class() {
         };
 
         $this->dependenciesRepositoryMock->method('get')
@@ -42,7 +44,7 @@ class AutoWiringStrategyTest extends TestCase
 
     public function testResolveClassWithConstructor(): void
     {
-        $testClassWithConstructor = new class () {
+        $testClassWithConstructor = new class() {
             public function __construct()
             {
             }
@@ -78,7 +80,7 @@ class AutoWiringStrategyTest extends TestCase
 
     public function testResolveThrowsExceptionForMissingTypeHint()
     {
-        $testClassWithMissingTypeHint = new class (101) {
+        $testClassWithMissingTypeHint = new class(101) {
             public function __construct($param1)
             {
             }
@@ -101,7 +103,7 @@ class AutoWiringStrategyTest extends TestCase
 
     public function testResolveThrowsExceptionForUnionType()
     {
-        $testClassWithUnionType = new class (101) {
+        $testClassWithUnionType = new class(101) {
             public function __construct(string|int $param1)
             {
             }

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Strategies;
 
+use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
 use EchoFusion\ServiceManager\ServiceManagerException;
 use ReflectionClass;
 use ReflectionNamedType;
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use ReflectionParameter;
 use ReflectionUnionType;
+use function sprintf;
 
 class AutoWiringStrategy implements ContainerResolverStrategyInterface
 {
@@ -24,7 +26,7 @@ class AutoWiringStrategy implements ContainerResolverStrategyInterface
 
         $invokable = false;
         foreach ($reflectionClass->getMethods() as $methodObj) {
-            if ($methodObj->getname() == '__invoke') {
+            if ($methodObj->getname() === '__invoke') {
                 $invokable = true;
             }
         }
@@ -42,7 +44,7 @@ class AutoWiringStrategy implements ContainerResolverStrategyInterface
             return new $entry();
         }
 
-        $dependencies = array_map(function (\ReflectionParameter $param) use ($entry, $serviceManager) {
+        $dependencies = array_map(function (ReflectionParameter $param) use ($entry, $serviceManager) {
             $name = $param->getName();
             $type = $param->getType();
 
@@ -60,6 +62,7 @@ class AutoWiringStrategy implements ContainerResolverStrategyInterface
 
             if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
                 $entry = $serviceManager->getDependenciesManager()->get($type->getName());
+
                 return $this->resolve($entry, $serviceManager);
             }
 

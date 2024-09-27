@@ -6,7 +6,6 @@ namespace EchoFusion\ServiceManager\Strategies;
 
 use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
-use EchoFusion\ServiceManager\ServiceManagerException;
 
 class ManualStrategy implements ContainerResolverStrategyInterface
 {
@@ -21,7 +20,6 @@ class ManualStrategy implements ContainerResolverStrategyInterface
             DependenciesRepositoryInterface::Factory => $this->getFactoryInstance($id, $serviceManager),
         };
     }
-
 
     public function getAliasInstance(string $id, ServiceManagerInterface $serviceManager): object
     {

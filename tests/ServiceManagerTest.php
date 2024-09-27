@@ -2,17 +2,19 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
-use PHPUnit\Framework\TestCase;
-use EchoFusion\ServiceManager\ServiceManager;
 use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
+use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\ServiceManager;
 use EchoFusion\ServiceManager\ServiceManagerException;
+use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
+use PHPUnit\Framework\TestCase;
 
 class ServiceManagerTest extends TestCase
 {
     private ServiceManagerInterface $serviceManager;
+
     private DependenciesRepositoryInterface $dependenciesRepository;
+
     private ContainerResolverStrategyInterface $containerResolverStrategy;
 
     protected function setUp(): void

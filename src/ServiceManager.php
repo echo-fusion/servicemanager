@@ -7,6 +7,8 @@ namespace EchoFusion\ServiceManager;
 use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
+use function is_callable;
+use function sprintf;
 
 class ServiceManager implements ServiceManagerInterface
 {
@@ -23,7 +25,7 @@ class ServiceManager implements ServiceManagerInterface
         if ($this->has($id)) {
             $entry = $this->dependenciesRepository->get($id);
             if (is_callable($entry)) {
-                return ($entry($this));
+                return $entry($this);
             }
         }
 
