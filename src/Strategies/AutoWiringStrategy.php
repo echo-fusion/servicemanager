@@ -12,14 +12,14 @@ use ReflectionUnionType;
 
 class AutoWiringStrategy implements ContainerResolverStrategyInterface
 {
-    public function resolve(string $id, ServiceManagerInterface $serviceManager): mixed
+    public function resolve(string $id, ServiceManagerInterface $serviceManager): object
     {
         $dependenciesRepository = $serviceManager->getDependenciesManager();
         $entry = $dependenciesRepository->get($id);
 
         $reflectionClass = new ReflectionClass($entry);
         if (!$reflectionClass->isInstantiable()) {
-            throw new ServiceManagerException(sprintf('Class "%s" is not instantiable!', $entry));
+            throw new ServiceManagerException(sprintf('Class %s is not instantiable!', $entry));
         }
 
         $invokable = false;
@@ -36,6 +36,7 @@ class AutoWiringStrategy implements ContainerResolverStrategyInterface
         if (!$constructor) {
             return new $entry();
         }
+
         $parameters = $constructor->getParameters();
         if (!$parameters) {
             return new $entry();
