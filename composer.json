@@ -35,7 +35,8 @@
         ],
         "phpunit": "vendor/bin/phpunit",
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
         "analyze": "psalm --show-info=false --no-cache --no-progress"
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "dev"
 }
