@@ -21,7 +21,7 @@ The following versions of PHP are supported by this version.
 
 ## Documentation
 
-Container has [documentation](http://container.thephpleague.com) in the [docs/](https://github.com/thephpleague/container/tree/master/docs) sub-directory.
+Container has documentation in the [docs/](https://github.com/echo-fusion/servicemanager/tree/master/docs) sub-directory.
 
 ## Testing
 
