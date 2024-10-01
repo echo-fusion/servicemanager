@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\ServiceManager;
 use EchoFusion\ServiceManager\ServiceManagerException;
+use EchoFusion\ServiceManager\ServiceManagerInterface;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 class ServiceManagerTest extends TestCase
 {
@@ -25,7 +26,7 @@ class ServiceManagerTest extends TestCase
         $this->serviceManager = new ServiceManager(
             $this->dependenciesRepository,
             $this->containerResolverStrategy,
-            false // $allowOverride is set to false for testing
+            false
         );
     }
 
@@ -74,7 +75,7 @@ class ServiceManagerTest extends TestCase
             ->willReturn('nonCallableService');
 
         $this->containerResolverStrategy->method('resolve')
-            ->with('serviceA')
+            ->with('serviceA', $this->serviceManager)
             ->willReturn($resolvedObj);
 
         $result = $this->serviceManager->get('serviceA');
@@ -140,6 +141,45 @@ class ServiceManagerTest extends TestCase
         $this->serviceManager->bind($this->dependenciesRepository);
     }
 
+    public function testBindAddsServicesWithOverrideAllowed(): void
+    {
+        $this->serviceManager = new ServiceManager(
+            $this->dependenciesRepository,
+            $this->containerResolverStrategy,
+            true
+        );
+
+        $this->dependenciesRepository->method('getDependencies')
+            ->willReturn(['serviceA' => 'FactoryClassA']);
+
+        $this->dependenciesRepository->method('has')
+            ->with('serviceA')
+            ->willReturn(true);
+
+        $this->dependenciesRepository->method('getType')
+            ->willReturn(DependenciesRepositoryInterface::Factory);
+
+        $this->dependenciesRepository->expects($this->once())
+            ->method('setFactory')
+            ->with('serviceA', 'FactoryClassA');
+
+        $this->serviceManager->bind($this->dependenciesRepository);
+    }
+
+    public function testBindDoesNotThrowExceptionIfNoDependencies(): void
+    {
+        $this->dependenciesRepository->method('getDependencies')
+            ->willReturn([]);
+
+        try {
+            $this->serviceManager->bind($this->dependenciesRepository);
+        } catch (ServiceManagerException $e) {
+            $this->fail('Expected no exception to be thrown, but got: ' . $e->getMessage());
+        }
+
+        $this->assertTrue(true);
+    }
+
     public function testResolveService(): void
     {
         $resolvedObj = new stdClass();
@@ -151,5 +191,12 @@ class ServiceManagerTest extends TestCase
         $result = $this->serviceManager->resolve('serviceA');
 
         $this->assertEquals($resolvedObj, $result);
+    }
+
+    public function testGetDependenciesManager(): void
+    {
+        $result = $this->serviceManager->getDependenciesManager();
+
+        $this->assertSame($this->dependenciesRepository, $result);
     }
 }

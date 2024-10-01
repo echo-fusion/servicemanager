@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\ServiceManagerException;
+use EchoFusion\ServiceManager\ServiceManagerInterface;
 use EchoFusion\ServiceManager\Strategies\AutoWiringStrategy;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -122,6 +122,42 @@ class AutoWiringStrategyTest extends TestCase
 
         $autoWiringStrategy = new AutoWiringStrategy();
         $autoWiringStrategy->resolve('TestClassWithUnionType', $serviceManagerMock);
+    }
+
+    public function testResolveThrowsExceptionForInvalidParams(): void
+    {
+        $testClassWithInvalidParams = new class('example') {
+            public function __construct(string $param1)
+            {
+            }
+        };
+
+        $this->expectException(ServiceManagerException::class);
+        $this->expectExceptionMessage('Failed to resolve the class ' . $testClassWithInvalidParams::class . ' because invalid params!');
+
+        $this->dependenciesRepositoryMock
+            ->method('get')
+            ->willReturn($testClassWithInvalidParams::class);
+
+        $this->autoWiringStrategy->resolve($testClassWithInvalidParams::class, $this->serviceManagerMock);
+    }
+
+    public function testResolveInvokableClass(): void
+    {
+        $testClassInvokable = new class() {
+            public function __invoke(ServiceManagerInterface $serviceManager)
+            {
+                return new self();
+            }
+        };
+
+        $this->dependenciesRepositoryMock
+            ->method('get')
+            ->willReturn($testClassInvokable::class);
+
+        $result = $this->autoWiringStrategy->resolve($testClassInvokable::class, $this->serviceManagerMock);
+
+        $this->assertInstanceOf($testClassInvokable::class, $result);
     }
 }
 
