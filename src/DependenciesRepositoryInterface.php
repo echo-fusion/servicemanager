@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace EchoFusion\ServiceManager\Container;
+namespace EchoFusion\ServiceManager;
 
 interface DependenciesRepositoryInterface
 {

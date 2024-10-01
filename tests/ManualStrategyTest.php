@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
+use EchoFusion\ServiceManager\ServiceManagerInterface;
 use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
 use EchoFusion\ServiceManager\Strategies\ManualStrategy;
 use PHPUnit\Framework\TestCase;

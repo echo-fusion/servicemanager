@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Strategies;
 
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
 use EchoFusion\ServiceManager\ServiceManagerException;
+use EchoFusion\ServiceManager\ServiceManagerInterface;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;

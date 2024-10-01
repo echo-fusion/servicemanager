@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace EchoFusion\ServiceManager\Container;
+namespace EchoFusion\ServiceManager;
 
-use EchoFusion\ServiceManager\ServiceManagerException;
 use function sprintf;
 
 final class DependenciesRepository implements DependenciesRepositoryInterface

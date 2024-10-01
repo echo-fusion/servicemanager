@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Strategies;
 
-use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
-use EchoFusion\ServiceManager\Contract\ServiceManagerInterface;
+use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
+use EchoFusion\ServiceManager\ServiceManagerInterface;
 
 class ManualStrategy implements ContainerResolverStrategyInterface
 {

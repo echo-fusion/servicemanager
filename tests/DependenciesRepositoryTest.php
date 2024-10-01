@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\Container\DependenciesRepository;
-use EchoFusion\ServiceManager\Container\DependenciesRepositoryInterface;
+use EchoFusion\ServiceManager\DependenciesRepository;
+use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
 use EchoFusion\ServiceManager\ServiceManagerException;
 use PHPUnit\Framework\TestCase;
 
