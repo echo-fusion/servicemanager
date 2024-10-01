@@ -42,8 +42,6 @@ class ServiceManager implements ServiceManagerInterface
 
     public function bind(DependenciesRepositoryInterface $dependenciesRepository): void
     {
-        $this->dependenciesRepository = $dependenciesRepository;
-
         foreach ($dependenciesRepository->getDependencies() as $id => $entry) {
             if ($this->has($id) && !$this->allowOverride) {
                 throw new ServiceManagerException(sprintf('Dependency "%s" is already exist in container!', $id));
