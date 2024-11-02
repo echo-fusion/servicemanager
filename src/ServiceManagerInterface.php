@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager;
 
-use Psr\Container\ContainerInterface;
+use EchoFusion\ServiceManager\Providers\SettableContainerInterface;
 
-interface ServiceManagerInterface extends ContainerInterface
+interface ServiceManagerInterface extends SettableContainerInterface
 {
-    public function bind(DependenciesRepositoryInterface $dependenciesRepository): void;
+    public function enableOverride(bool $enable): void;
+
+    public function getAllowOverride(): bool;
 
     /**
      * @param non-empty-string $id
      */
     public function resolve(string $id): mixed;
-
-    public function getDependenciesManager(): DependenciesRepositoryInterface;
 }
