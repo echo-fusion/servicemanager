@@ -25,8 +25,13 @@ class ServiceManagerProvider implements ServiceProviderInterface
      *
      * @param list<class-string> $config
      */
-    public function boot(SettableContainerInterface $container, array $config): void
+    public function boot(SettableContainerInterface $container, array $config = []): void
     {
+        // Load default config from stub if no config is provided
+        if (empty($config)) {
+            $config = require __DIR__ . '/../../config/servicemanager.stub.php';
+        }
+
         $serviceManager = $container->get(ServiceManagerInterface::class);
 
         if (isset($config['allow_override'])) {
