@@ -1,8 +1,8 @@
 # Service manager
 
-This is a lightweight, flexible dependency injection container designed to manage services and their dependencies in PHP applications. It simplifies the process of binding, resolving, and managing service instances using multiple strategies, such as factories, invokables, and aliases.
+The ServiceManager package is a lightweight, flexible dependency injection container for managing services in PHP applications. It supports features like singleton services, auto-wiring, and lazy loading, making it easy to define and resolve services of varying complexity.
 
-Built with flexibility in mind, the ServiceManager allows you to define how your dependencies are resolved, making it ideal for small to large-scale applications. It follows modern PHP standards and supports PSR-11 compatible containers, ensuring seamless integration with other frameworks and libraries.
+With ServiceManagerProvider, the package can be seamlessly integrated into applications that use PSR-11-compatible containers.
 
 ## Install
 
@@ -20,96 +20,79 @@ The following versions of PHP are supported by this version.
 * PHP 8.2
 * PHP 8.3
 
+## Key Features
+* Auto-wiring: Automatically resolves dependencies for class constructors.
+* Singleton support: Define services as shared (singleton) instances.
+* Lazy loading: Services are instantiated only when requested.
+* Configurable overrides: Allow or restrict overriding existing services.
+
 ## Usage
 
-This example demonstrates how to bind three types of services:
+### Basic Setup
+* Register Services: Add services to the container with set().
+* Resolve Services: Retrieve instances via get().
+* Enable Override: Allow service overrides using enableOverride().
 
-- Invokable: Classes that can be instantiated directly without dependencies
-- Factory: Classes that require their dependencies to be defined separately, either in a factory class or as a callable
-- Alias: Interfaces that are mapped to specific class implementations
+This example demonstrates how to register and retrieve services, configure singletons, and enable auto-wiring for classes:
 
 ```php
-<?php
-
-require 'vendor/autoload.php';
-
 use EchoFusion\ServiceManager\ServiceManager;
-use EchoFusion\ServiceManager\DependenciesRepository;
-use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategy;
-use EchoFusion\ServiceManager\ServiceManagerInterface;
-use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
+use EchoFusion\ServiceManager\Exceptions\ServiceManagerException;
 
-// Create a Dependencies Repository
-$dependenciesRepository = new DependenciesRepository();
+$serviceManager = new ServiceManager();
 
-// Bind services
-function(DependenciesRepositoryInterface $dependenciesRepository) {
-    $dependenciesRepository->setAlias(MyServiceInterface::class, MyServiceFactory::class);
-    $dependenciesRepository->setInvokable(MyService::class, MyService::class);
-    $dependenciesRepository->setFactory(AnotherServiceInterface::class, function (ServiceManagerInterface $serviceManager) {
-        return new AnotherService($serviceManager->get('MyServiceInterface'));
-    });
+// Register a service with an ID and class name (shared as singleton)
+$serviceManager->set(MyServiceInterface::class, MyService::class, true);
+
+// Register a service with a factory (non-singleton)
+$serviceManager->set(AnotherServiceInterface::class, function (ServiceManagerInterface $sm) {
+    return new AnotherService($sm->get(MyServiceInterface::class));
+});
+
+// Retrieve services
+$myService = $serviceManager->get(MyServiceInterface::class);
+$anotherService = $serviceManager->get(AnotherServiceInterface::class);
+
+// Check if a service exists
+if ($serviceManager->has(MyServiceInterface::class)) {
     // ...
 }
 ```
-When deciding how to define a factory, the choice between a callable and a factory class depends on the complexity and reusability of the creation logic:
-- Callable: Best for simple, single-use creation logic
-- Factory class: Ideal for complex or reusable service creation logic
+
+### Using provider
+The ServiceManagerProvider integrates ServiceManager into a PSR-11-compatible container and manages service booting and configuration.
+
+**Note:** Copy the config file into your project's config directory and add your application's dependencies following the provided example. 
 
 ```php
+use EchoFusion\ServiceManager\DefaultContainer;
+use EchoFusion\ServiceManager\Providers\ServiceManagerProvider;
 use EchoFusion\ServiceManager\ServiceManagerInterface;
 
-class DBFactory
-{
-    public function __invoke(ServiceManagerInterface $serviceManager): DBInterface
-    {
-        $config = $serviceManager->get(ConfigInterface::class);
-        \Webmozart\Assert\Assert::isInstanceOf($config, ConfigInterface::class);
-        \Webmozart\Assert\Assert::keyExists($configArray, 'database_info');
-        // do some complex validation... 
-        
-        return new DB(
-            $configArray['database_info']
-        );
-    }
+// Initialize a container, falling back to DefaultContainer if $container is not provided
+$container = $container ?? new DefaultContainer();
+
+// Initialize the ServiceManagerProvider with the container
+$provider = new ServiceManagerProvider();
+// Register the ServiceManager within the container
+$provider->register($container);
+// Define and boot service configurations
+$config = require __DIR__ . '/config/servicemanager.config.php';// replace path with your project config directory
+$provider->boot($container, $config]);
+
+// Retrieve the service manager from the container
+$serviceManager = $container->get(ServiceManagerInterface::class);
+
+// Now you can access services through $serviceManager
+if ($serviceManager->has(MyServiceInterface::class)) {
+    $myService = $serviceManager->get(MyServiceInterface::class);
 }
 
-// don't forget to define this factory class inside your dependencies repository
-$dependenciesRepository->setFactory(DBInterface::class, DBFactory::class);
-```
-
-After defining your dependencies, you need to bind them to the service manager:
-
-```php
-use EchoFusion\ServiceManager\ServiceManager;
-
-// Create a Container Resolver Strategy according config
-$resolver = new $config['service_manager']['resolver'];
-
-// Create a Service Manager instance
-$serviceManager = new ServiceManager(
-    $dependenciesRepository,
-    $resolver,
-    false // allowOverride services inside the container
-);
-
-$serviceManager->bind($dependenciesRepository);
-
-// Resolve services
-$myService = $serviceManager->get(myServiceInterface::class);
-// check service exist on service manager
-if ($serviceManager->has(AnotherServiceInterface::class)) {
-    $anotherService = $serviceManager->get(AnotherServiceInterface::class);
-}
-```
-
-If you attempt to bind a service that already exists and overrides are not allowed, a ServiceManagerException will be thrown:
-
-```php
+// or if you want to get exception if service definition doesn't exist
 try {
-    $serviceManager->bind($dependenciesRepository);
-} catch (ServiceManagerException $e) {
-    echo $e->getMessage(); // Handle exception
+    $serviceManager->get(AnotherServiceInterface::class);
+} catch (ServiceManagerException | ReflectionException $e) {
+    echo $e->getMessage();
 }
 ```
 

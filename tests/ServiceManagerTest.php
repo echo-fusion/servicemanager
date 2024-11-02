@@ -2,201 +2,218 @@
 
 declare(strict_types=1);
 
-use EchoFusion\ServiceManager\DependenciesRepositoryInterface;
+namespace EchoFusion\ServiceManager\Tests;
+
+use EchoFusion\ServiceManager\Exceptions\ServiceManagerException;
 use EchoFusion\ServiceManager\ServiceManager;
-use EchoFusion\ServiceManager\ServiceManagerException;
-use EchoFusion\ServiceManager\ServiceManagerInterface;
-use EchoFusion\ServiceManager\Strategies\ContainerResolverStrategyInterface;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 use stdClass;
 
 class ServiceManagerTest extends TestCase
 {
-    private ServiceManagerInterface $serviceManager;
-
-    private DependenciesRepositoryInterface $dependenciesRepository;
-
-    private ContainerResolverStrategyInterface $containerResolverStrategy;
+    private ServiceManager $serviceManager;
 
     protected function setUp(): void
     {
-        $this->dependenciesRepository = $this->createMock(DependenciesRepositoryInterface::class);
-        $this->containerResolverStrategy = $this->createMock(ContainerResolverStrategyInterface::class);
-
-        $this->serviceManager = new ServiceManager(
-            $this->dependenciesRepository,
-            $this->containerResolverStrategy,
-            false
-        );
+        $this->serviceManager = new ServiceManager();
     }
 
-    public function testGetReturnsCallableService(): void
+    public function testSetAndGetService(): void
     {
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(true);
+        $this->serviceManager->set('testService', fn () => 'test', true);
+        $service = $this->serviceManager->get('testService');
 
-        $this->dependenciesRepository->method('get')
-            ->with('serviceA')
-            ->willReturn(fn () => 'resolvedService');
-
-        $result = $this->serviceManager->get('serviceA');
-
-        $this->assertEquals('resolvedService', $result);
+        $this->assertEquals('test', $service);
     }
 
-    public function testGetResolvesServiceWhenNotFound(): void
+    public function testGetSharedServiceInstance(): void
     {
-        $resolvedObj = new stdClass();
+        $this->serviceManager->set('sharedService', fn () => new stdClass(), true);
+        $instance1 = $this->serviceManager->get('sharedService');
+        $instance2 = $this->serviceManager->get('sharedService');
 
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(false);
-
-        $this->containerResolverStrategy->method('resolve')
-            ->with('serviceA', $this->serviceManager)
-            ->willReturn($resolvedObj);
-
-        $result = $this->serviceManager->get('serviceA');
-
-        $this->assertEquals($resolvedObj, $result);
+        $this->assertSame($instance1, $instance2);
     }
 
-    public function testGetReturnsNonCallableService(): void
+    public function testGetNonSharedServiceInstance(): void
     {
-        $resolvedObj = new stdClass();
+        $this->serviceManager->set('nonSharedService', fn () => new stdClass(), false);
+        $instance1 = $this->serviceManager->get('nonSharedService');
+        $instance2 = $this->serviceManager->get('nonSharedService');
 
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(true);
-
-        $this->dependenciesRepository->method('get')
-            ->with('serviceA')
-            ->willReturn('nonCallableService');
-
-        $this->containerResolverStrategy->method('resolve')
-            ->with('serviceA', $this->serviceManager)
-            ->willReturn($resolvedObj);
-
-        $result = $this->serviceManager->get('serviceA');
-
-        $this->assertEquals($resolvedObj, $result);
+        $this->assertNotSame($instance1, $instance2);
     }
 
-    public function testHasServiceExists(): void
+    public function testServiceOverrideDisabledThrowsException(): void
     {
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(true);
-
-        $this->assertTrue($this->serviceManager->has('serviceA'));
-    }
-
-    public function testBindThrowsExceptionIfServiceExistsAndOverrideNotAllowed(): void
-    {
-        $this->dependenciesRepository->method('getDependencies')
-            ->willReturn(['serviceA' => 'FactoryClassA']);
-
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(true);
+        $this->serviceManager->set('overrideService', fn () => 'test');
 
         $this->expectException(ServiceManagerException::class);
-        $this->expectExceptionMessage('Dependency "serviceA" is already exist in container!');
+        $this->expectExceptionMessage('Service "overrideService" already exists in the container!');
 
-        $this->serviceManager->bind($this->dependenciesRepository);
+        $this->serviceManager->set('overrideService', fn () => 'testOverride');
     }
 
-    public function testBindAddsServices(): void
+    public function testEnableOverrideAllowsOverride(): void
     {
-        $this->dependenciesRepository->method('getDependencies')
-            ->willReturn([
-                'serviceA' => 'FactoryClassA',
-                'serviceB' => 'InvokableClassB',
-                'serviceC' => 'AliasClassC',
-            ]);
+        $this->serviceManager->set('overrideService', fn () => 'test');
+        $this->serviceManager->enableOverride(true);
 
-        $this->dependenciesRepository->method('has')
-            ->willReturn(false);
+        $this->serviceManager->set('overrideService', fn () => 'testOverride');
+        $service = $this->serviceManager->get('overrideService');
 
-        $this->dependenciesRepository->method('getType')
-            ->willReturnOnConsecutiveCalls(
-                DependenciesRepositoryInterface::Factory,
-                DependenciesRepositoryInterface::Invokable,
-                DependenciesRepositoryInterface::Alias
-            );
-
-        $this->dependenciesRepository->expects($this->once())
-            ->method('setFactory')
-            ->with('serviceA', 'FactoryClassA');
-
-        $this->dependenciesRepository->expects($this->once())
-            ->method('setInvokable')
-            ->with('InvokableClassB');
-
-        $this->dependenciesRepository->expects($this->once())
-            ->method('setAlias')
-            ->with('serviceC', 'AliasClassC');
-
-        $this->serviceManager->bind($this->dependenciesRepository);
+        $this->assertEquals('testOverride', $service);
     }
 
-    public function testBindAddsServicesWithOverrideAllowed(): void
+    public function testGetAllowOverride(): void
     {
-        $this->serviceManager = new ServiceManager(
-            $this->dependenciesRepository,
-            $this->containerResolverStrategy,
-            true
-        );
+        $this->assertFalse($this->serviceManager->getAllowOverride());
 
-        $this->dependenciesRepository->method('getDependencies')
-            ->willReturn(['serviceA' => 'FactoryClassA']);
+        $this->serviceManager->enableOverride(true);
 
-        $this->dependenciesRepository->method('has')
-            ->with('serviceA')
-            ->willReturn(true);
-
-        $this->dependenciesRepository->method('getType')
-            ->willReturn(DependenciesRepositoryInterface::Factory);
-
-        $this->dependenciesRepository->expects($this->once())
-            ->method('setFactory')
-            ->with('serviceA', 'FactoryClassA');
-
-        $this->serviceManager->bind($this->dependenciesRepository);
+        $this->assertTrue($this->serviceManager->getAllowOverride());
     }
 
-    public function testBindDoesNotThrowExceptionIfNoDependencies(): void
+    public function testGetUndefinedServiceThrowsException(): void
     {
-        $this->dependenciesRepository->method('getDependencies')
-            ->willReturn([]);
+        $this->expectException(ReflectionException::class);
+        $this->expectExceptionMessage('Class "NonExistentService" does not exist');
 
-        try {
-            $this->serviceManager->bind($this->dependenciesRepository);
-        } catch (ServiceManagerException $e) {
-            $this->fail('Expected no exception to be thrown, but got: ' . $e->getMessage());
-        }
-
-        $this->assertTrue(true);
+        $this->serviceManager->get('NonExistentService');
     }
 
-    public function testResolveService(): void
+    public function testResolveInstantiableClass(): void
     {
-        $resolvedObj = new stdClass();
+        $this->serviceManager->set(TestClass::class, TestClass::class);
+        $service = $this->serviceManager->get(TestClass::class);
 
-        $this->containerResolverStrategy->method('resolve')
-            ->with('serviceA', $this->serviceManager)
-            ->willReturn($resolvedObj);
-
-        $result = $this->serviceManager->resolve('serviceA');
-
-        $this->assertEquals($resolvedObj, $result);
+        $this->assertInstanceOf(TestClass::class, $service);
     }
 
-    public function testGetDependenciesManager(): void
+    public function testResolveClassWithDependencies(): void
     {
-        $result = $this->serviceManager->getDependenciesManager();
+        $this->serviceManager->set(DependencyClass::class, DependencyClass::class);
+        $this->serviceManager->set(MainClass::class, MainClass::class);
 
-        $this->assertSame($this->dependenciesRepository, $result);
+        $service = $this->serviceManager->get(MainClass::class);
+
+        $this->assertInstanceOf(MainClass::class, $service);
+        $this->assertInstanceOf(DependencyClass::class, $service->dependency);
+    }
+
+    public function testResolveFailsForMissingTypeHint(): void
+    {
+        $this->expectException(ServiceManagerException::class);
+        $this->expectExceptionMessage('Failed to resolve the class ' . MissingTypeHintClass::class . ' because param param1 is missing a type hint');
+
+        $this->serviceManager->set(MissingTypeHintClass::class, MissingTypeHintClass::class);
+        $this->serviceManager->get(MissingTypeHintClass::class);
+    }
+
+    public function testResolveFailsForUnionType(): void
+    {
+        $this->expectException(ServiceManagerException::class);
+        $this->expectExceptionMessage('Failed to resolve the class ' . UnionTypeClass::class . ' because of union type of param param1');
+
+        $this->serviceManager->set(UnionTypeClass::class, UnionTypeClass::class);
+        $this->serviceManager->get(UnionTypeClass::class);
+    }
+
+    public function testResolveFailsForInvalidParam(): void
+    {
+        $this->expectException(ServiceManagerException::class);
+        $this->expectExceptionMessage('Failed to resolve the class ' . InvalidParamClass::class . ' because of invalid param param1');
+
+        $this->serviceManager->set(InvalidParamClass::class, InvalidParamClass::class);
+        $this->serviceManager->get(InvalidParamClass::class);
+    }
+
+    public function testGetThrowsExceptionForNonInstantiableClass(): void
+    {
+        $this->expectException(ServiceManagerException::class);
+        $this->expectExceptionMessage('Class ' . MyAbstractClass::class . ' is not instantiable!');
+
+        $serviceManager = new ServiceManager();
+        $serviceManager->set(MyAbstractClass::class, MyAbstractClass::class);
+        $serviceManager->get(MyAbstractClass::class);
+    }
+
+    public function testGetInstantiatesClassWithNoConstructorParameters(): void
+    {
+        $serviceManager = new ServiceManager();
+
+        $serviceManager->set('NoConstructorClass', NoConstructorClass::class);
+
+        $instance = $serviceManager->get('NoConstructorClass');
+        $this->assertInstanceOf(NoConstructorClass::class, $instance);
+    }
+
+    public function testGetInstantiatesClassWithNoConstructorParametersDirectly(): void
+    {
+        $serviceManager = new ServiceManager();
+
+        $serviceManager->set('EmptyConstructorClass', EmptyConstructorClass::class);
+
+        $instance = $serviceManager->get('EmptyConstructorClass');
+        $this->assertInstanceOf(EmptyConstructorClass::class, $instance);
+    }
+}
+
+// Mock classes for testing dependencies
+class TestClass
+{
+}
+
+class NoConstructorClass
+{
+    // No constructor parameters
+}
+
+class EmptyConstructorClass
+{
+    public function __construct()
+    {
+        // No parameters in constructor
+    }
+}
+
+abstract class MyAbstractClass
+{
+    // Abstract classes cannot be instantiated
+}
+
+class DependencyClass
+{
+}
+
+class MainClass
+{
+    public DependencyClass $dependency;
+
+    public function __construct(DependencyClass $dependency)
+    {
+        $this->dependency = $dependency;
+    }
+}
+
+class MissingTypeHintClass
+{
+    public function __construct($param1)
+    {
+    }
+}
+
+class UnionTypeClass
+{
+    public function __construct(string|int $param1)
+    {
+    }
+}
+
+class InvalidParamClass
+{
+    public function __construct(int $param1)
+    {
     }
 }

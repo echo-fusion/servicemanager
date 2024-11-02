@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace EchoFusion\ServiceManager;
+namespace EchoFusion\ServiceManager\Exceptions;
 
 use Exception;
 use Psr\Container\ContainerExceptionInterface;
