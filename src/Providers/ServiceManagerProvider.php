@@ -29,7 +29,7 @@ class ServiceManagerProvider implements ServiceProviderInterface
     {
         // Load default config from stub if no config is provided
         if (empty($config)) {
-            $config = require __DIR__ . '/../../config/servicemanager.stub.php';
+            $config = require __DIR__ . '/../../config/servicemanager.config.php';
         }
 
         $serviceManager = $container->get(ServiceManagerInterface::class);
