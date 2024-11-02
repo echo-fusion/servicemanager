@@ -23,11 +23,11 @@ jobs:
         run: composer install --no-progress --no-suggest --prefer-dist
 
       - name: Run PHPUnit tests with coverage
-        run: composer phpunit-coverage
+        run: composer test:coverage:text
 
       - name: Check coverage percentage
         run: |
-          coverage=$(composer phpunit-coverage | awk '/Lines/ {print $4}' | tr -d '%') 
+          coverage=$(composer test:coverage:text | awk '/Lines/ {print $4}' | tr -d '%') 
           if [ "$coverage" -lt 90 ]; then
             echo "Code coverage is below 90% ($coverage%). Pull request cannot be accepted."
             exit 1
