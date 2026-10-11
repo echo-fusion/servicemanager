@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Tests;
 
+use EchoFusion\Contracts\ServiceManager\ServiceManagerInterface;
+use EchoFusion\Contracts\ServiceManager\SettableContainerInterface;
 use EchoFusion\ServiceManager\Exceptions\ServiceManagerException;
 use EchoFusion\ServiceManager\Providers\ServiceManagerProvider;
-use EchoFusion\ServiceManager\Providers\SettableContainerInterface;
-use EchoFusion\ServiceManager\ServiceManagerInterface;
 use PHPUnit\Framework\TestCase;
 use function is_callable;
 
