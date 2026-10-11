@@ -67,7 +67,7 @@ The ServiceManagerProvider integrates ServiceManager into a PSR-11-compatible co
 ```php
 use EchoFusion\ServiceManager\DefaultContainer;
 use EchoFusion\ServiceManager\Providers\ServiceManagerProvider;
-use EchoFusion\ServiceManager\ServiceManagerInterface;
+use EchoFusion\Contracts\ServiceManager\ServiceManagerInterface;
 
 // Initialize a container, falling back to DefaultContainer if $container is not provided
 $container = $container ?? new DefaultContainer();

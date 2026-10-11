@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Providers;
 
+use EchoFusion\Contracts\ServiceManager\ServiceManagerInterface;
+use EchoFusion\Contracts\ServiceManager\SettableContainerInterface;
+use EchoFusion\Contracts\ServiceProvider\ServiceProviderInterface;
 use EchoFusion\ServiceManager\ServiceManager;
-use EchoFusion\ServiceManager\ServiceManagerInterface;
 use function is_array;
 
 class ServiceManagerProvider implements ServiceProviderInterface
