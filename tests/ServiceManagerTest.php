@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager\Tests;
 
+use EchoFusion\ServiceManager\Exceptions\CircularDependencyException;
+use EchoFusion\ServiceManager\Exceptions\NotFoundException;
 use EchoFusion\ServiceManager\Exceptions\ServiceManagerException;
 use EchoFusion\ServiceManager\ServiceManager;
 use PHPUnit\Framework\TestCase;
-use ReflectionException;
+use Psr\Container\NotFoundExceptionInterface;
 use stdClass;
 
 class ServiceManagerTest extends TestCase
@@ -77,10 +79,108 @@ class ServiceManagerTest extends TestCase
 
     public function testGetUndefinedServiceThrowsException(): void
     {
-        $this->expectException(ReflectionException::class);
-        $this->expectExceptionMessage('Class "NonExistentService" does not exist');
+        $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('Service "NonExistentService" is not defined and is not an instantiable class.');
 
         $this->serviceManager->get('NonExistentService');
+    }
+
+    public function testSharedFlagIsHonouredForClassNameDefinitions(): void
+    {
+        $this->serviceManager->set('shared.class', stdClass::class, true);
+        $this->serviceManager->set('plain.class', stdClass::class);
+
+        $this->assertSame($this->serviceManager->get('shared.class'), $this->serviceManager->get('shared.class'));
+        $this->assertNotSame($this->serviceManager->get('plain.class'), $this->serviceManager->get('plain.class'));
+    }
+
+    public function testOverridingASharedServiceDropsTheOldInstance(): void
+    {
+        $this->serviceManager->enableOverride(true);
+        $this->serviceManager->set('service', fn () => new stdClass(), true);
+        $old = $this->serviceManager->get('service');
+
+        $this->serviceManager->set('service', fn () => new DependencyClass(), true);
+
+        $this->assertInstanceOf(DependencyClass::class, $this->serviceManager->get('service'));
+        $this->assertNotSame($old, $this->serviceManager->get('service'));
+    }
+
+    public function testASharedServiceThatIsNullIsBuiltOnlyOnce(): void
+    {
+        $calls = 0;
+        $this->serviceManager->set('nothing', function () use (&$calls) {
+            ++$calls;
+
+            return null;
+        }, true);
+
+        $this->assertNull($this->serviceManager->get('nothing'));
+        $this->assertNull($this->serviceManager->get('nothing'));
+        $this->assertSame(1, $calls);
+    }
+
+    public function testHasFollowsPsr11ForAutoWirableClasses(): void
+    {
+        $this->serviceManager->set('defined', fn () => 1);
+
+        $this->assertTrue($this->serviceManager->has('defined'));
+        $this->assertTrue($this->serviceManager->has(DependencyClass::class), 'an instantiable class can be auto-wired');
+        $this->assertFalse($this->serviceManager->has(MyAbstractClass::class), 'an abstract class cannot');
+        $this->assertFalse($this->serviceManager->has('not-a-class'));
+    }
+
+    public function testUnknownIdsThrowAPsr11NotFoundException(): void
+    {
+        try {
+            $this->serviceManager->get('nope');
+            $this->fail('Expected NotFoundException');
+        } catch (NotFoundException $e) {
+            $this->assertInstanceOf(NotFoundExceptionInterface::class, $e);
+        }
+    }
+
+    public function testCircularClassDependenciesAreReportedInsteadOfCrashing(): void
+    {
+        $this->expectException(CircularDependencyException::class);
+        $this->expectExceptionMessage('Circular dependency detected: ' . CircularA::class . ' -> ' . CircularB::class . ' -> ' . CircularA::class . '.');
+
+        $this->serviceManager->get(CircularA::class);
+    }
+
+    public function testCircularFactoryDependenciesAreReported(): void
+    {
+        $this->serviceManager->set('a', fn ($c) => $c->get('b'));
+        $this->serviceManager->set('b', fn ($c) => $c->get('a'));
+
+        $this->expectException(CircularDependencyException::class);
+        $this->expectExceptionMessage('a -> b -> a');
+
+        $this->serviceManager->get('a');
+    }
+
+    public function testTheContainerRecoversAfterAFailedResolution(): void
+    {
+        try {
+            $this->serviceManager->get(CircularA::class);
+        } catch (CircularDependencyException) {
+        }
+
+        $this->assertInstanceOf(DependencyClass::class, $this->serviceManager->get(DependencyClass::class), 'the resolving stack was cleaned up');
+    }
+
+    public function testAClassNameThatIsAlsoAFunctionNameIsTreatedAsAClass(): void
+    {
+        $this->serviceManager->set('dt', stdClass::class);
+
+        $this->assertInstanceOf(stdClass::class, $this->serviceManager->get('dt'));
+    }
+
+    public function testResolveReportsMissingClasses(): void
+    {
+        $this->expectException(NotFoundException::class);
+
+        $this->serviceManager->resolve('Does\\Not\\Exist');
     }
 
     public function testResolveInstantiableClass(): void
@@ -214,6 +314,20 @@ class UnionTypeClass
 class InvalidParamClass
 {
     public function __construct(int $param1)
+    {
+    }
+}
+
+class CircularA
+{
+    public function __construct(public CircularB $b)
+    {
+    }
+}
+
+class CircularB
+{
+    public function __construct(public CircularA $a)
     {
     }
 }

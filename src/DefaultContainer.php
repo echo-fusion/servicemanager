@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace EchoFusion\ServiceManager;
 
-use Exception;
+use EchoFusion\ServiceManager\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use function sprintf;
 
 class DefaultContainer implements ContainerInterface
 {
@@ -15,8 +15,7 @@ class DefaultContainer implements ContainerInterface
     public function get($id)
     {
         if (!isset($this->instances[$id])) {
-            throw new class($id . ' not found') extends Exception implements NotFoundExceptionInterface {
-            };
+            throw new NotFoundException(sprintf('"%s" was not found in the container.', $id));
         }
 
         return $this->instances[$id];

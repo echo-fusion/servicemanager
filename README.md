@@ -95,6 +95,14 @@ try {
 }
 ```
 
+## Behaviour worth knowing
+
+* **Shared vs new:** a service defined with `shared: true` is built once and reused, whether its definition is a factory or a class name. Without it, every `get()` builds a new instance.
+* **Auto-wiring:** an id that has no definition but names an instantiable class is built by resolving its constructor type-hints from the container. Auto-wired instances are **not** shared; define the class with `shared: true` when you want a singleton.
+* **PSR-11:** `has()` is `true` for defined services and for instantiable classes, and `get()` of anything else throws `Exceptions\NotFoundException` (a `Psr\Container\NotFoundExceptionInterface`).
+* **Loops:** services that depend on each other in a loop throw `Exceptions\CircularDependencyException` naming the chain (`A -> B -> A`) instead of exhausting the stack.
+* **Overriding:** `set()` on an existing id needs `enableOverride(true)`; the previously built shared instance is dropped.
+
 ## Testing
 
 ```bash

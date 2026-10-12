@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace EchoFusion\ServiceManager;
 
 use EchoFusion\Contracts\ServiceManager\ServiceManagerInterface;
+use EchoFusion\ServiceManager\Exceptions\CircularDependencyException;
+use EchoFusion\ServiceManager\Exceptions\NotFoundException;
 use EchoFusion\ServiceManager\Exceptions\ServiceManagerException;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionUnionType;
+use function array_key_exists;
+use function array_pop;
+use function class_exists;
+use function implode;
+use function in_array;
 use function is_callable;
+use function is_string;
 use function sprintf;
 
 class ServiceManager implements ServiceManagerInterface
@@ -28,6 +35,13 @@ class ServiceManager implements ServiceManagerInterface
     private bool $allowOverride = false;
 
     /**
+     * Ids that are being resolved right now, used to detect circular dependencies.
+     *
+     * @var list<string>
+     */
+    private array $resolving = [];
+
+    /**
      * Registers a service in the container.
      *
      * @param non-empty-string $id Identifier for the service
@@ -37,13 +51,14 @@ class ServiceManager implements ServiceManagerInterface
      */
     public function set(string $id, callable|string $service, bool $shared = false): void
     {
-        if ($this->has($id) && !$this->allowOverride) {
+        if (isset($this->definitions[$id]) && !$this->allowOverride) {
             throw new ServiceManagerException(sprintf('Service "%s" already exists in the container!', $id));
         }
 
-        // Store the definition and shared status
+        // Store the definition and shared status; a shared instance built from the old definition must not survive
         $this->definitions[$id] = $service;
         $this->sharedServices[$id] = $shared;
+        unset($this->services[$id]);
     }
 
     public function enableOverride(bool $enable): void
@@ -59,44 +74,72 @@ class ServiceManager implements ServiceManagerInterface
     /**
      * Returns a service by its identifier.
      *
+     * A defined service is built from its definition (and kept when it is shared). An id without a
+     * definition that names an instantiable class is auto-wired and returned as a new instance each time.
+     *
      * @param string $id The service identifier
      * @return mixed The resolved service
-     * @throws ServiceManagerException|ReflectionException
+     * @throws NotFoundException when nothing is defined and the id is not an instantiable class
+     * @throws CircularDependencyException when services depend on each other in a loop
+     * @throws ServiceManagerException
      */
     public function get(string $id): mixed
     {
-        // Check if the service is already resolved and cached
-        if (isset($this->services[$id])) {
+        // Already built and shared (array_key_exists, so a shared service that is null is still cached)
+        if (array_key_exists($id, $this->services)) {
             return $this->services[$id];
         }
 
-        // Check if the service is defined
-        if ($this->has($id)) {
-            $definition = $this->definitions[$id];
+        if (!$this->has($id)) {
+            throw new NotFoundException(sprintf('Service "%s" is not defined and is not an instantiable class.', $id));
+        }
 
-            // If the service is not a callable, assume it's a class name and resolve it
-            if (!is_callable($definition)) {
-                return $this->resolve($definition);
+        $this->enter($id);
+
+        try {
+            if (!isset($this->definitions[$id])) {
+                return $this->resolve($id); // auto-wiring
             }
 
-            // Resolve the service via the callable (factory)
-            $service = $definition($this);
+            $definition = $this->definitions[$id];
 
-            // Cache the service if it's shared (singleton)
+            // A string that names a class is a class to build; any other callable is a factory
+            $service = is_string($definition) && class_exists($definition)
+                ? $this->resolve($definition)
+                : (is_callable($definition) ? $definition($this) : $this->resolve((string) $definition));
+
             if ($this->sharedServices[$id]) {
                 $this->services[$id] = $service;
             }
 
             return $service;
+        } finally {
+            array_pop($this->resolving);
         }
-
-        // If no definition, try to auto-wire the class
-        return $this->resolve($id);
     }
 
+    /**
+     * Whether `get()` can return something for the id: it is defined, or it is an instantiable class.
+     */
     public function has(string $id): bool
     {
-        return isset($this->definitions[$id]);
+        if (isset($this->definitions[$id])) {
+            return true;
+        }
+
+        return class_exists($id) && (new ReflectionClass($id))->isInstantiable();
+    }
+
+    private function enter(string $id): void
+    {
+        if (in_array($id, $this->resolving, true)) {
+            throw new CircularDependencyException(sprintf(
+                'Circular dependency detected: %s.',
+                implode(' -> ', [...$this->resolving, $id]),
+            ));
+        }
+
+        $this->resolving[] = $id;
     }
 
     /**
@@ -104,10 +147,14 @@ class ServiceManager implements ServiceManagerInterface
      *
      * @param string $id The class name to resolve
      * @return mixed The resolved instance
-     * @throws ReflectionException
+     * @throws NotFoundException|ServiceManagerException
      */
     public function resolve(string $id): mixed
     {
+        if (!class_exists($id)) {
+            throw new NotFoundException(sprintf('Class "%s" does not exist.', $id));
+        }
+
         $reflectionClass = new ReflectionClass($id);
         if (!$reflectionClass->isInstantiable()) {
             throw new ServiceManagerException('Class ' . $id . ' is not instantiable!');
