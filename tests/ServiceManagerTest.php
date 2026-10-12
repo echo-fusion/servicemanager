@@ -183,6 +183,39 @@ class ServiceManagerTest extends TestCase
         $this->serviceManager->resolve('Does\\Not\\Exist');
     }
 
+    public function testScalarAndUntypedParametersFallBackToTheirDefaults(): void
+    {
+        $service = $this->serviceManager->get(WithDefaults::class);
+
+        $this->assertSame('x', $service->name);
+        $this->assertSame(3, $service->count);
+        $this->assertSame([1, 2], $service->list);
+        $this->assertNull($service->untyped);
+        $this->assertNull($service->union);
+        $this->assertInstanceOf(DependencyClass::class, $service->dependency, 'a class the container can build is injected, not defaulted');
+    }
+
+    public function testAClassParameterTheContainerCannotBuildFallsBackToItsDefault(): void
+    {
+        $service = $this->serviceManager->get(WithOptionalInterface::class);
+
+        $this->assertNull($service->logger);
+    }
+
+    public function testADefinedServiceIsPreferredOverTheDefault(): void
+    {
+        $logger = new class() implements LoggerLike {
+        };
+        $this->serviceManager->set(LoggerLike::class, fn () => $logger);
+
+        $this->assertSame($logger, $this->serviceManager->get(WithOptionalInterface::class)->logger);
+    }
+
+    public function testVariadicParametersAreLeftEmpty(): void
+    {
+        $this->assertSame([], $this->serviceManager->get(WithVariadic::class)->items);
+    }
+
     public function testResolveInstantiableClass(): void
     {
         $this->serviceManager->set(TestClass::class, TestClass::class);
@@ -329,5 +362,42 @@ class CircularB
 {
     public function __construct(public CircularA $a)
     {
+    }
+}
+
+interface LoggerLike
+{
+}
+
+class WithDefaults
+{
+    public function __construct(
+        public DependencyClass $dependency,
+        public string $name = 'x',
+        public int $count = 3,
+        public array $list = [1, 2],
+        public $untyped = null,
+        public string|int|null $union = null,
+    ) {
+    }
+}
+
+class WithOptionalInterface
+{
+    public function __construct(public ?LoggerLike $logger = null)
+    {
+    }
+}
+
+class WithVariadic
+{
+    /**
+     * @var array<int, string>
+     */
+    public array $items;
+
+    public function __construct(string ...$items)
+    {
+        $this->items = $items;
     }
 }

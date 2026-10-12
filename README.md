@@ -101,6 +101,7 @@ try {
 * **Auto-wiring:** an id that has no definition but names an instantiable class is built by resolving its constructor type-hints from the container. Auto-wired instances are **not** shared; define the class with `shared: true` when you want a singleton.
 * **PSR-11:** `has()` is `true` for defined services and for instantiable classes, and `get()` of anything else throws `Exceptions\NotFoundException` (a `Psr\Container\NotFoundExceptionInterface`).
 * **Loops:** services that depend on each other in a loop throw `Exceptions\CircularDependencyException` naming the chain (`A -> B -> A`) instead of exhausting the stack.
+* **Constructor parameters:** a class-typed parameter is taken from the container. A parameter the container cannot provide (a scalar, an untyped or union-typed one, or an interface nobody defined) uses its **default value** when it has one, so `__construct(Foo $foo, int $retries = 3, ?LoggerInterface $logger = null)` works. Without a default it throws, naming the parameter. Variadic parameters stay empty.
 * **Overriding:** `set()` on an existing id needs `enableOverride(true)`; the previously built shared instance is dropped.
 
 ## Testing
