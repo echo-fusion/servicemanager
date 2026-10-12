@@ -1,26 +1,25 @@
-# Service manager
+# ServiceManager
+
+[![CI](https://github.com/echo-fusion/servicemanager/actions/workflows/ci.yml/badge.svg)](https://github.com/echo-fusion/servicemanager/actions/workflows/ci.yml) [![Packagist](https://img.shields.io/packagist/v/echo-fusion/servicemanager.svg)](https://packagist.org/packages/echo-fusion/servicemanager) [![PHP](https://img.shields.io/badge/php-8.1%20%7C%208.2%20%7C%208.3-777bb4.svg)](https://www.php.net) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 The ServiceManager package is a lightweight, flexible dependency injection container for managing services in PHP applications. It supports features like singleton services, auto-wiring, and lazy loading, making it easy to define and resolve services of varying complexity.
 
 With ServiceManagerProvider, the package can be seamlessly integrated into applications that use PSR-11-compatible containers.
 
-## Install
+> Part of [EchoFusion](https://github.com/echo-fusion), a modular PHP framework built from small packages.
 
-Via Composer
+## Installation
 
-``` bash
-$ composer require echo-fusion/servicemanager
+```bash
+composer require echo-fusion/servicemanager
 ```
 
 ## Requirements
 
-The following versions of PHP are supported by this version.
-
-* PHP 8.1
-* PHP 8.2
-* PHP 8.3
+* PHP 8.1, 8.2 or 8.3
 
 ## Key Features
+
 * Auto-wiring: Automatically resolves dependencies for class constructors.
 * Singleton support: Define services as shared (singleton) instances.
 * Lazy loading: Services are instantiated only when requested.
@@ -96,21 +95,16 @@ try {
 }
 ```
 
-
 ## Testing
 
-Testing includes PHPUnit and PHPStan (Level 7).
-
-``` bash
-$ composer test
+```bash
+composer test
 ```
 
 ## Credits
 
-Developed and maintained by [Amir Shadanfar](https://github.com/amir-shadanfar).  
-Connect on [LinkedIn](https://www.linkedin.com/in/amir-shadanfar).
+- [Amir Shadanfar](https://github.com/amir-shadanfar)
 
 ## License
 
-The MIT License (MIT). Please see [License File](https://github.com/echo-fusion/servicemanager/blob/main/LICENSE) for more information.
-
+The MIT License (MIT). Please see [LICENSE](LICENSE) for more information.
