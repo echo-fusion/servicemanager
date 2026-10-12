@@ -49,7 +49,7 @@ class DefaultContainerTest extends TestCase
         $container = new DefaultContainer();
 
         $this->expectException(NotFoundExceptionInterface::class);
-        $this->expectExceptionMessage('non_existent_service not found');
+        $this->expectExceptionMessage('"non_existent_service" was not found in the container.');
 
         // Attempt to retrieve a non-existent service
         $container->get('non_existent_service');
