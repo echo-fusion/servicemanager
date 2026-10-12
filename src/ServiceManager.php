@@ -171,29 +171,53 @@ class ServiceManager implements ServiceManagerInterface
         }
 
         // Resolve constructor dependencies
-        $dependencies = array_map(function (ReflectionParameter $param) use ($id) {
-            $name = $param->getName();
-            $type = $param->getType();
-
-            if (!$type) {
-                throw new ServiceManagerException(
-                    'Failed to resolve the class ' . $id . ' because param ' . $name . ' is missing a type hint'
-                );
+        $dependencies = [];
+        foreach ($parameters as $param) {
+            if ($param->isVariadic()) {
+                break; // nothing to pass for ...$args
             }
 
-            if ($type instanceof ReflectionUnionType) {
-                throw new ServiceManagerException(
-                    'Failed to resolve the class ' . $id . ' because of union type of param ' . $name
-                );
-            }
-
-            if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
-                return $this->get($type->getName());
-            }
-
-            throw new ServiceManagerException('Failed to resolve the class ' . $id . ' because of invalid param ' . $name);
-        }, $parameters);
+            $dependencies[] = $this->resolveParameter($id, $param);
+        }
 
         return $reflectionClass->newInstanceArgs($dependencies);
+    }
+
+    /**
+     * A class-typed parameter is taken from the container. A parameter that cannot be (a scalar, an untyped or
+     * a union-typed one, or a class the container does not know) falls back to its default value when it has one.
+     *
+     * @throws ServiceManagerException when there is neither
+     */
+    private function resolveParameter(string $id, ReflectionParameter $param): mixed
+    {
+        $name = $param->getName();
+        $type = $param->getType();
+
+        if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
+            if ($param->isDefaultValueAvailable() && !$this->has($type->getName())) {
+                return $param->getDefaultValue();
+            }
+
+            return $this->get($type->getName());
+        }
+
+        if ($param->isDefaultValueAvailable()) {
+            return $param->getDefaultValue();
+        }
+
+        if ($type === null) {
+            throw new ServiceManagerException(
+                'Failed to resolve the class ' . $id . ' because param ' . $name . ' is missing a type hint'
+            );
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            throw new ServiceManagerException(
+                'Failed to resolve the class ' . $id . ' because of union type of param ' . $name
+            );
+        }
+
+        throw new ServiceManagerException('Failed to resolve the class ' . $id . ' because of invalid param ' . $name);
     }
 }
